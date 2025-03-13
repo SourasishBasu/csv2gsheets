@@ -1,0 +1,53 @@
+<!-- static/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV to Google Sheets Converter</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>CSV to Google Sheets Converter</h1>
+        
+        <div class="upload-container">
+            <div class="upload-area" id="dropArea">
+                <img src="/static/upload-icon.svg" alt="Upload" class="upload-icon">
+                <p>Drag & drop your CSV file here or</p>
+                <label for="fileInput" class="upload-button">Choose File</label>
+                <input type="file" id="fileInput" accept=".csv" hidden>
+                <p id="fileName" class="file-name"></p>
+            </div>
+            
+            <div class="options">
+                <div class="compression-option">
+                    <label for="compression">Compression Method:</label>
+                    <select id="compression">
+                        <option value="gzip" selected>Gzip (default)</option>
+                        <option value="zstd" disabled>Zstandard (not implemented)</option>
+                        <option value="lz4" disabled>LZ4 (not implemented)</option>
+                        <option value="brotli" disabled>Brotli (not implemented)</option>
+                    </select>
+                </div>
+                
+                <button id="uploadButton" disabled>Upload & Process</button>
+            </div>
+        </div>
+        
+        <div class="progress-container" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress" id="progressBar"></div>
+            </div>
+            <p id="progressStatus">Uploading...</p>
+        </div>
+        
+        <div class="results" id="results" style="display: none;">
+            <h2>Processing Results</h2>
+            <div class="result-content" id="resultContent"></div>
+        </div>
+    </div>
+    
+    <script src="/static/script.js"></script>
+</body>
+</html>

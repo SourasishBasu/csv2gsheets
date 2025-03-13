@@ -1,0 +1,6 @@
+temp/
+credentials.json
+venv
+.env
+__pycache__
+.python-version
