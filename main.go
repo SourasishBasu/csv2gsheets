@@ -24,7 +24,7 @@ const (
 	// Configuration constants
 	maxChunkCells               = 282400 //Maximum cells per write operation to Google Sheets
 	port                        = ":8080"
-	credentialsFile             = "credentials.json" // Your Google API credentials
+	credentialsFile             = "credentials.json" // Google API credentials
 	tempDir                     = "temp"
 	maxConcurrentUploads        = 5        // Limit concurrent uploads to avoid rate limiting
 	maxCellsPerSheet            = 10000000 // Google Sheets has a limit on 10 million cells
@@ -47,7 +47,6 @@ func main() {
 		os.Mkdir(tempDir, 0755)
 	}
 
-	// Set up more verbose logging
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	log.Printf("Starting server on port %s", port)
 	log.Printf("System Info: %s with %d CPUs", runtime.GOOS, runtime.NumCPU())
@@ -78,7 +77,7 @@ func createSpreadsheets(sheetsService *sheets.Service, driveService *drive.Servi
 	for i := 1; i <= numSheets; i++ {
 		title := fmt.Sprintf("CSV Import %s - %d", time.Now().Format("2006-01-02 15:04:05"), i)
 
-		// Define the spreadsheet with a single sheet and fixed column count
+		// Define the spreadsheet with a single sheet and fixed row, column count
 		spreadsheet, err := sheetsService.Spreadsheets.Create(&sheets.Spreadsheet{
 			Properties: &sheets.SpreadsheetProperties{Title: title},
 			Sheets: []*sheets.Sheet{
@@ -87,7 +86,7 @@ func createSpreadsheets(sheetsService *sheets.Service, driveService *drive.Servi
 						Title: "Sheet1",
 						GridProperties: &sheets.GridProperties{
 							RowCount:    int64(rows), // Max rows
-							ColumnCount: int64(cols), // Restrict to 8 columns
+							ColumnCount: int64(cols), // Max columns
 						},
 					},
 				},
@@ -309,21 +308,21 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 	// Process data in chunks
 	maxChunkSize := int(math.Floor(maxChunkCells / float64(len(csvheader))))
 	numChunks := int(math.Ceil(float64(len(allRows)) / float64(maxChunkSize)))
-	//numChunks := (len(allRows) + maxChunkSize - 1) / maxChunkSize
+
 	currentSpreadsheet := 0
 	stats.ChunksUploaded = numChunks
 	log.Printf("[%s] Uploading data in %d chunks (max %d rows per chunk)",
 		requestID, numChunks, maxChunkSize)
 
-	// Use a semaphore to limit concurrent uploads
+	// Semaphore to limit concurrent uploads
 	semaphore := make(chan struct{}, maxConcurrentUploads)
 
-	// Use a WaitGroup to wait for all goroutines to complete
+	// Using a WaitGroup to wait for all goroutines to complete
 	var wg sync.WaitGroup
 	errorChan := make(chan error, numChunks)
 	progressChan := make(chan int, numChunks)
 
-	// Start a goroutine to track progress
+	// Starting goroutines to track progress
 	go func() {
 		completedChunks := 0
 		for range progressChan {
@@ -341,6 +340,7 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		// Acquire semaphore
 		semaphore <- struct{}{}
 
+		// Check for spreadsheet switching conditions
 		if i > 0 && i%switchSpreadsheetChunkCount == 0 && currentSpreadsheet < len(spreadsheetIDs)-1 {
 			currentSpreadsheet++
 		}
@@ -373,18 +373,16 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 			// Calculate the range for this chunk
 			startRow := start + 1 // 1-indexed
 			endRow := end
-			//rangeStr := fmt.Sprintf("A%d:%c%d", startRow, 'A'+len(csvheader)-1, endRow)
 			rangeStr := fmt.Sprintf("Sheet1!A%d:H%d", startRow, endRow)
 
-			log.Printf("[%s] Chunk %d: Uploading range %s to spreadsheet %s",
-				requestID, chunkIndex, rangeStr, spreadsheetID)
+			log.Printf("[%s] Chunk %d: Uploading range %s to spreadsheet %s", requestID, chunkIndex, rangeStr, spreadsheetID)
 
-			// Add retries for API calls
+			// Retry for potentially failed API calls
 			maxRetries := 3
 			var updateErr error
 
 			for retry := 0; retry < maxRetries; retry++ {
-				// Update the spreadsheet with this chunk
+				// Update the spreadsheet with current chunk
 				_, updateErr = sheetsService.Spreadsheets.Values.Update(
 					spreadsheetID,
 					rangeStr,
@@ -405,7 +403,7 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 				log.Printf("[%s] Error updating chunk %d (retry %d/3) in spreadsheet %d: %v",
 					requestID, chunkIndex, retry+1, currentSpreadsheet+1, updateErr)
 
-				// Wait before retrying (exponential backoff)
+				// Waiting before retrying (exponential backoff)
 				if retry < maxRetries-1 {
 					time.Sleep(time.Duration(1<<retry) * time.Second)
 				}
@@ -484,6 +482,7 @@ only a portion may be visible in the spreadsheet.
 		spreadsheetURLs,
 	)
 
+	// Return response to client
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(response))
@@ -492,17 +491,16 @@ only a portion may be visible in the spreadsheet.
 	log.Printf("[%s] Request completed successfully", requestID)
 }
 
-// Initialize Google Sheets API service
+// Google Sheets API service Init Function
 func initSheetsService() (*sheets.Service, *drive.Service, error) {
 	ctx := context.Background()
 
-	// Read credentials file
 	credentialsBytes, err := os.ReadFile(credentialsFile)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to read client credentials file: %v", err)
 	}
 
-	// Configure the Google Sheets API client
+	// Configure the Google API client with appropriate permission scopes
 	config, err := google.JWTConfigFromJSON(credentialsBytes, sheets.SpreadsheetsScope, drive.DriveFileScope)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to parse client credentials file: %v", err)
