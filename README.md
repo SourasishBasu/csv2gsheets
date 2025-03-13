@@ -1,9 +1,9 @@
 ## CSV to Google Sheets
 
-> A high performance CSV uploader that processes large datasets and uploads them to Google Sheets' Spreadsheet efficiently.
+> A high performance CSV uploader that processes large datasets and uploads them to Google Sheets' Spreadsheet very fast.
 
 ## Features
-- Scalability: Handles large CSVs (1 million rows in <1 min) in sub minute times. Uses exponential backoff method for large volume to avoid exceeding API rate limits.
+- Scalability: Handles large CSVs (1 million rows in <1 min). Utilizes exponential backoff retry algorithm for large dataset volumes to avoid exceeding API rate limits.
 
 - Efficiency: Concurrent requests with goroutines to speed up uploads.
 
@@ -42,6 +42,9 @@ go run main.go
 
 Access the web UI at `localhost:8000`.
 
+![web Dashboard](./assets/dash.png)
+
+
 pic
 
 > [!NOTE]  
@@ -51,9 +54,9 @@ pic
 
 | Size     | Rows      | Time(seconds) | Results                      |
 | -------- | --------- | ------------- | ---------------------------- |
-| 4 KB     | 10000     | 7 secs        | ![](./assets/4kb.png)        |
-| 5 MB     | 1,00,000  | 14 secs       | ![](./assets/5mb.png)        |
-| 53 MB    | 10,00,000 | 49 secs       | ![](./assets/53mb.png)       |
+| 4 KB     | 10000     | 7 secs        | ![Small Dataset Benchmark](./assets/4kb.png)        |
+| 5 MB     | 1,00,000  | 14 secs       | ![Medium Dataset Benchmark](./assets/5mb.png)        |
+| 53 MB    | 10,00,000 | 49 secs       | ![Large Dataset Benchmark](./assets/53mb.png)       |
 
 Testing performed on a 4 vCPU, 8GB RAM server on DigitalOcean using a spreadsheet of 8 columns.
 
