@@ -44,9 +44,6 @@ Access the web UI at `localhost:8000`.
 
 ![web Dashboard](./assets/dash.png)
 
-
-pic
-
 > [!NOTE]  
 > The FastAPI web server is optional and is provided for convenience. Postman, Curl or any other API tooling can be used as well to send requests to the go service running at `localhost:8080`.
 
